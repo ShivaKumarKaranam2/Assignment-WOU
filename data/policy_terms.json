@@ -1,0 +1,60 @@
+{
+  "claim_types": {
+    "hospitalization": {
+      "required_documents": ["hospital_bill", "discharge_summary", "doctor_prescription"],
+      "coverage_limit": 50000,
+      "sub_limit": 35000,
+      "co_pay_rate": 0.1,
+      "waiting_period_days": 30,
+      "preauth_required": true,
+      "network_required": false,
+      "notes": "Inpatient hospitalization claims require bill, discharge summary, and prescription."
+    },
+    "consultation": {
+      "required_documents": ["consultation_bill", "doctor_prescription"],
+      "coverage_limit": 3000,
+      "sub_limit": 3000,
+      "co_pay_rate": 0.2,
+      "waiting_period_days": 0,
+      "preauth_required": false,
+      "network_required": false,
+      "notes": "Outpatient consultation claims require bill and prescription."
+    },
+    "lab_test": {
+      "required_documents": ["lab_report", "lab_bill"],
+      "coverage_limit": 10000,
+      "sub_limit": 10000,
+      "co_pay_rate": 0.15,
+      "waiting_period_days": 0,
+      "preauth_required": false,
+      "network_required": false,
+      "notes": "Lab test claims require report and bill."
+    }
+  },
+  "document_keywords": {
+    "hospital_bill": ["hospital bill", "inpatient bill", "hospital invoice", "bill"],
+    "discharge_summary": ["discharge summary", "discharge", "summary"],
+    "doctor_prescription": ["prescription", "rx", "doctor"],
+    "consultation_bill": ["consultation bill", "doctor consultation", "clinic bill", "bill"],
+    "lab_report": ["lab report", "pathology report", "test report", "lab"],
+    "lab_bill": ["lab bill", "diagnostic bill", "invoice", "bill"]
+  },
+  "members": [
+    {
+      "member_id": "EMP001",
+      "name": "Asha Patel",
+      "policy_start_date": "2025-01-01",
+      "coverage_start_date": "2025-02-01",
+      "network_hospitals": ["Apollo Hospital", "City Care Hospital"],
+      "plan": "gold"
+    },
+    {
+      "member_id": "EMP002",
+      "name": "Ravi Kumar",
+      "policy_start_date": "2025-03-15",
+      "coverage_start_date": "2025-04-01",
+      "network_hospitals": ["City Care Hospital"],
+      "plan": "silver"
+    }
+  ]
+}

@@ -1,0 +1,16 @@
+### Secrets and security artifacts
+.env
+.env.*
+!.env.example
+
+
+.venv/
+
+.pytest_cache/
+src/claims_agentic_health.egg-info
+src/claims_app/__pycache__
+src/claims_app/workflow/__pycache__
+src/claims_app/services/__pycache__
+tests/__pycache__
+uv.lock
+claims_app/__pycache__
