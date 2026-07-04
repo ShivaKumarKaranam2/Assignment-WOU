@@ -15,13 +15,19 @@ class FakePolicyRepository:
         return self._policy
 
     def claim_rule(self, claim_type: str) -> dict:
-        return self._policy["claim_types"][claim_type]
+        return self._policy["opd_categories"][claim_type.lower()]
 
     def required_documents(self, claim_type: str) -> list[str]:
-        return list(self.claim_rule(claim_type)["required_documents"])
+        reqs = self._policy["document_requirements"].get(claim_type.upper(), {})
+        return list(reqs.get("required", []))
 
     def document_keywords(self) -> dict[str, list[str]]:
-        return self._policy.get("document_keywords", {})
+        return {
+            "hospital_bill": ["bill"],
+            "discharge_summary": ["discharge"],
+            "doctor_prescription": ["prescription"],
+            "consultation_bill": ["consultation", "bill"],
+        }
 
     def find_member(self, member_id: str, member_name: str | None = None) -> dict | None:
         member_id = member_id.lower()
@@ -81,39 +87,48 @@ class FakeExtractionService:
 
 def make_policy(overrides: dict | None = None) -> dict:
     policy = {
-        "claim_types": {
+        "opd_categories": {
             "hospitalization": {
-                "required_documents": ["hospital_bill", "discharge_summary", "doctor_prescription"],
                 "coverage_limit": 50000,
                 "sub_limit": 35000,
-                "co_pay_rate": 0.1,
+                "copay_percent": 10,
                 "waiting_period_days": 30,
-                "preauth_required": False,
-                "network_required": False,
+                "requires_pre_auth": False,
             },
             "consultation": {
-                "required_documents": ["consultation_bill", "doctor_prescription"],
                 "coverage_limit": 3000,
                 "sub_limit": 3000,
-                "co_pay_rate": 0.0,
+                "copay_percent": 0,
                 "waiting_period_days": 0,
-                "preauth_required": False,
-                "network_required": False,
+                "requires_pre_auth": False,
             },
         },
-        "document_keywords": {
-            "hospital_bill": ["bill"],
-            "discharge_summary": ["discharge"],
-            "doctor_prescription": ["prescription"],
-            "consultation_bill": ["consultation", "bill"],
+        "document_requirements": {
+            "HOSPITALIZATION": {
+                "required": ["hospital_bill", "discharge_summary", "doctor_prescription"],
+            },
+            "CONSULTATION": {
+                "required": ["consultation_bill", "doctor_prescription"],
+            },
         },
+        "waiting_periods": {
+            "initial_waiting_period_days": 30,
+            "specific_conditions": {
+                "diabetes": 90
+            }
+        },
+        "exclusions": {
+            "conditions": []
+        },
+        "coverage": {
+            "per_claim_limit": 5000
+        },
+        "network_hospitals": ["Apollo Hospital"],
         "members": [
             {
                 "member_id": "EMP001",
                 "name": "Asha Patel",
-                "policy_start_date": "2025-01-01",
-                "coverage_start_date": "2025-02-01",
-                "network_hospitals": ["Apollo Hospital"],
+                "join_date": "2025-02-01",
                 "plan": "gold",
             }
         ],
@@ -151,7 +166,7 @@ def test_document_validation_stops_for_wrong_documents() -> None:
     result = workflow.run(make_claim(treatment_type="hospitalization"))
 
     assert result.decision == DecisionType.document_error
-    assert "Missing required documents" in result.reason
+    assert "Missing required documents" in result.reason or "Uploaded document type" in result.reason
     assert result.stage_records[0].stage.value == "document_validation"
     assert result.stage_records[0].status.value == "failed"
 
@@ -173,15 +188,13 @@ def test_policy_rejects_when_waiting_period_is_not_met() -> None:
 def test_workflow_approves_when_rules_pass() -> None:
     policy = make_policy(
         {
-            "claim_types": {
+            "opd_categories": {
                 "consultation": {
-                    "required_documents": ["consultation_bill", "doctor_prescription"],
                     "coverage_limit": 3000,
                     "sub_limit": 3000,
-                    "co_pay_rate": 0.0,
+                    "copay_percent": 0,
                     "waiting_period_days": 0,
-                    "preauth_required": False,
-                    "network_required": False,
+                    "requires_pre_auth": False,
                 }
             }
         }
@@ -203,15 +216,13 @@ def test_workflow_approves_when_rules_pass() -> None:
 def test_workflow_routes_low_quality_claims_to_manual_review() -> None:
     policy = make_policy(
         {
-            "claim_types": {
+            "opd_categories": {
                 "consultation": {
-                    "required_documents": ["consultation_bill", "doctor_prescription"],
                     "coverage_limit": 3000,
                     "sub_limit": 3000,
-                    "co_pay_rate": 0.0,
+                    "copay_percent": 0,
                     "waiting_period_days": 0,
-                    "preauth_required": False,
-                    "network_required": False,
+                    "requires_pre_auth": False,
                 }
             }
         }

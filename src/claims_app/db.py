@@ -3,7 +3,7 @@ from __future__ import annotations
 import json
 import sqlite3
 from dataclasses import dataclass
-from datetime import datetime
+from datetime import datetime, timezone
 from pathlib import Path
 from typing import Any
 
@@ -76,7 +76,7 @@ def save_assignment_result(result: AssignmentCaseResult) -> None:
                 result.confidence,
                 result.message,
                 result.trace_reference,
-                datetime.utcnow().isoformat(),
+                datetime.now(timezone.utc).isoformat(),
                 json.dumps(result.raw_case, default=str),
                 result.model_dump_json(),
             ),
@@ -118,7 +118,7 @@ def save_live_result(result: ClaimResult) -> None:
                 result.confidence,
                 result.reason,
                 result.trace_reference,
-                datetime.utcnow().isoformat(),
+                datetime.now(timezone.utc).isoformat(),
                 None,
                 result.model_dump_json(),
             ),

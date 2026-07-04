@@ -6,7 +6,7 @@ from datetime import date
 from pathlib import Path
 
 
-REQUIRED_POLICY_KEYS = {"claim_types", "members", "document_keywords"}
+REQUIRED_POLICY_KEYS = {"opd_categories", "members", "document_requirements"}
 
 
 def load_policy_terms(policy_file: Path) -> dict:
@@ -32,15 +32,28 @@ class PolicyRepository:
 
     def claim_rule(self, claim_type: str) -> dict:
         try:
-            return self._policy["claim_types"][claim_type]
+            return self._policy["opd_categories"][claim_type.lower()]
         except KeyError as exc:
             raise KeyError(f"Unsupported claim type: {claim_type}") from exc
 
     def required_documents(self, claim_type: str) -> list[str]:
-        return list(self.claim_rule(claim_type).get("required_documents", []))
+        try:
+            # Document requirements in new policy are in uppercase
+            reqs = self._policy["document_requirements"].get(claim_type.upper(), {})
+            return list(reqs.get("required", []))
+        except Exception:
+            return []
 
     def document_keywords(self) -> dict[str, list[str]]:
-        return {name: list(keywords) for name, keywords in self._policy.get("document_keywords", {}).items()}
+        # Supply fallback keywords mapping standard types to search phrases
+        return {
+            "HOSPITAL_BILL": ["hospital bill", "inpatient bill", "hospital invoice", "bill"],
+            "DISCHARGE_SUMMARY": ["discharge summary", "discharge", "summary"],
+            "PRESCRIPTION": ["prescription", "rx", "doctor"],
+            "PHARMACY_BILL": ["pharmacy bill", "pharmacy invoice", "medicine bill", "bill"],
+            "LAB_REPORT": ["lab report", "pathology report", "test report", "lab"],
+            "DENTAL_REPORT": ["dental report", "dentist report", "teeth", "dental"]
+        }
 
     def find_member(self, member_id: str, member_name: str | None = None) -> dict | None:
         member_id = member_id.strip().lower()

@@ -51,6 +51,7 @@ class ClaimInput(BaseModel):
     provider_name: str | None = None
     notes: str | None = None
     documents: list[UploadedDocument]
+    metadata: dict[str, Any] = Field(default_factory=dict)
 
 
 class OCRDocument(BaseModel):

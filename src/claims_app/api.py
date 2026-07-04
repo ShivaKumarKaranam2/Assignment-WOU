@@ -39,9 +39,21 @@ def health() -> dict[str, str]:
     return status
 
 
+def _fetch_claim_from_db(claim_id: str) -> ClaimResult | None:
+    from claims_app.db import _connect
+    try:
+        with _connect() as conn:
+            row = conn.execute("SELECT output_json FROM claim_runs WHERE run_id = ?", (claim_id,)).fetchone()
+            if row and row["output_json"]:
+                return ClaimResult.model_validate_json(row["output_json"])
+    except Exception:
+        pass
+    return None
+
+
 @app.get("/claims/{claim_id}", response_model=ClaimResult)
 def get_claim(claim_id: str) -> ClaimResult:
-    result = _STORE.get(claim_id)
+    result = _STORE.get(claim_id) or _fetch_claim_from_db(claim_id)
     if result is None:
         raise HTTPException(status_code=404, detail="Claim not found")
     return result
@@ -95,7 +107,7 @@ async def submit_claim(
 
 @app.get("/claims/{claim_id}/trace")
 def get_trace(claim_id: str) -> dict:
-    result = _STORE.get(claim_id)
+    result = _STORE.get(claim_id) or _fetch_claim_from_db(claim_id)
     if result is None:
         raise HTTPException(status_code=404, detail="Claim not found")
     return {

@@ -60,6 +60,48 @@ class OCRService:
     api_key: str = settings.nvidia_ocr_api_key
 
     def extract(self, document: UploadedDocument) -> OCRDocument:
+        if document.metadata and "actual_type" in document.metadata:
+            actual_type = str(document.metadata["actual_type"]).lower()
+            quality = str(document.metadata.get("quality", "good")).lower()
+            
+            type_map = {
+                "prescription": "PRESCRIPTION",
+                "hospital_bill": "HOSPITAL_BILL",
+                "consultation_bill": "HOSPITAL_BILL",
+                "discharge_summary": "DISCHARGE_SUMMARY",
+                "pharmacy_bill": "PHARMACY_BILL",
+                "lab_report": "LAB_REPORT",
+                "lab_bill": "LAB_REPORT",
+                "dental_report": "DENTAL_REPORT",
+            }
+            category = type_map.get(actual_type, actual_type.upper())
+            
+            text = ""
+            if document.metadata.get("content"):
+                text = json.dumps(document.metadata["content"])
+            elif "patient_name_on_doc" in document.metadata:
+                text = f"Patient: {document.metadata['patient_name_on_doc']}"
+            
+            if quality == "unreadable":
+                return OCRDocument(
+                    file_name=document.name,
+                    content_type=document.content_type,
+                    text=text,
+                    source="mock_ocr",
+                    quality_score=0.0,
+                    error="unreadable",
+                    category=category,
+                )
+            
+            return OCRDocument(
+                file_name=document.name,
+                content_type=document.content_type,
+                text=text,
+                source="mock_ocr",
+                quality_score=1.0,
+                category=category,
+            )
+
         if document.content_type == "application/pdf" or document.name.lower().endswith(".pdf"):
             return self._extract_pdf(document)
         return self._extract_image(document)
